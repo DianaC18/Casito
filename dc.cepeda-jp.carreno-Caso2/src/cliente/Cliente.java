@@ -27,7 +27,7 @@ public class Cliente {
 	public final static String OK = "OK";
 	public final static String ALGS = "AES";
 	public final static String ALGA = "RSA";
-	public final static String ALGHMAC = "HMACMD5";
+	public final static String ALGHMAC = "HMACSHA1";
 	public final static String ERROR = "ERROR";
 
 	private static final String IP = "localhost";
@@ -85,7 +85,9 @@ public class Cliente {
 		{
 			switch( estado ) {
 			case 0:
+				
 				System.out.println("Servidor: " + inputLine);
+				
 				if (inputLine.equalsIgnoreCase(OK)) 
 				{
 					outputLine = "ALGORITMOS:"+ALGS+":"+ALGA+":"+ALGHMAC;
@@ -96,11 +98,13 @@ public class Cliente {
 					outputLine = ERROR;
 					estado = -1;
 				}
+				
 				pEscritor.println(outputLine);
 				System.out.println("Cliente: " + outputLine);
 				break;
 			case 1:
 				System.out.println("Servidor: " + inputLine);
+				
 				if(inputLine.equalsIgnoreCase(OK))
 				{
 					byte[] bytes = certificado.createBytes(new Date(), new Date(), ALGA, 512, "SHA1withRSA");
@@ -135,22 +139,35 @@ public class Cliente {
 				
 				break;
 			case 3:
-				System.out.println("Servidoraa: " + inputLine);
+				
 				String reader = inputLine;
 				byte[] llaveSimetricaCifrada = toByteArray(reader);
 				byte[] llaveDescifrada = Cifrado.descifrar(llaveSimetricaCifrada, certificado.getOwnPrivateKey(), ALGA);
-
+			
+				
 				certificado.setLlaveSimetrica(llaveDescifrada);
 
 				byte[] cifrarLlave = Cifrado.cifrar(certificadoServidor.getPublicKey(), llaveDescifrada, ALGA);
 				String llaveCifrada = toByteArrayHexa(cifrarLlave);
 				outputLine = llaveCifrada;
 				pEscritor.println(outputLine);
-				System.out.println("Cliente: " + outputLine);
+				
+				System.out.println( "Cliente: " + outputLine);
+				
+				
+				byte[] cifrarLlaveCli = Cifrado.cifrar(certificado.getOwnPublicKey(), llaveDescifrada, ALGA);
+				String llaveCifradaClii = toByteArrayHexa(cifrarLlaveCli);
+				
+				outputLine = llaveCifradaClii;
+				pEscritor.println(outputLine);
+				
+				System.out.println("Servidor: " + outputLine);
+				
 				estado++;
+				
 				break;
 			case 4:
-				System.out.println("Servidor: " + inputLine);
+				System.out.println("Cliente: " + inputLine);
 				if(inputLine.equalsIgnoreCase(OK))
 				{
 					//Cifrar consulta	
@@ -168,9 +185,10 @@ public class Cliente {
 					outputLine = hashConsulta;
 					pEscritor.println(outputLine);
 					System.out.println("Cliente: " + outputLine);
+					
 					estado++;
-
-					System.out.println("Servidor: " + pLector.readLine());
+					
+					byte[] respDatos = Cifrado.cifrar(certificadoServidor.g, outputLine, ALGHMAC);
 				}
 				else
 				{
@@ -179,6 +197,25 @@ public class Cliente {
 					estado = -1;
 				}
 				break;
+				
+//			case 5:
+//				System.out.println(inputLine+"wiiiiiiiiiiii");
+//				if (inputLine.equalsIgnoreCase(OK)) 
+//				{
+//					outputLine = "ALGORITMOS:"+ALGS+":"+ALGA+":"+ALGHMAC;
+//					estado++;
+//				} 
+//				else 
+//				{
+//					outputLine = ERROR;
+//					estado = -1;
+//				}
+//				
+//				pEscritor.println(outputLine);
+//				System.out.println("Cliente: " + outputLine);
+//				
+//				
+//				break;
 			default:
 				estado = -1;
 				break;
