@@ -1,10 +1,12 @@
 package seguridad;
 
 import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 
@@ -102,4 +104,5 @@ public class Cifrado {
 		}
 		return rta; 
 	}
+	
 }

@@ -8,15 +8,20 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Date;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.xml.bind.DatatypeConverter;
 
 import seguridad.Certificado;
 import seguridad.Cifrado;
-import srvcifIC201820.Seg;
 
 public class Cliente {
 	
@@ -111,8 +116,9 @@ public class Cliente {
 					certificadoString = toByteArrayHexa(bytes);
 										
 					pEscritor.println(certificadoString);
-					System.out.println("Cliente: Certificado del cliente");					
+					System.out.println("Cliente: Certificado del cliente");	
 					estado++;
+					
 				}
 				else
 				{
@@ -120,53 +126,35 @@ public class Cliente {
 				}
 				break;
 			case 2:
-
-				if(inputLine.equalsIgnoreCase(OK)) {
-					String sCertificadoServidor = pLector.readLine();
+				
+					String sCertificadoServidor = inputLine;
 					byte[] certificadoBytes = new byte['È'];
 					certificadoBytes = toByteArray(sCertificadoServidor);
 					CertificateFactory cf = CertificateFactory.getInstance("X.509");
 					InputStream in = new ByteArrayInputStream(certificadoBytes);
 					certificadoServidor =  (X509Certificate) cf.generateCertificate(in);
 					System.out.println("Servidor: Certificado del servidor");
+				    
+					SecretKey sk = createSymmetricKey(ALGS);
 					
-					outputLine = OK;
-
+					String encodedKey = Base64.getEncoder().encodeToString(sk.getEncoded());
+				
+					byte[] bytess = toByteArray(encodedKey);
+					
+					byte [] llaveCifrada=Cifrado.cifrar(certificadoServidor.getPublicKey(), bytess, ALGA);
+					
+					String llaveCif=toByteArrayHexa(llaveCifrada);
+					outputLine=llaveCif;
+					pEscritor.println(outputLine);
+					
+					System.out.println("Cliente: "+ outputLine);
+					
+					
 					estado++;
 					
-					pEscritor.println(outputLine);
-				}
-				
 				break;
-			case 3:
-				
-				String reader = inputLine;
-				byte[] llaveSimetricaCifrada = toByteArray(reader);
-				byte[] llaveDescifrada = Cifrado.descifrar(llaveSimetricaCifrada, certificado.getOwnPrivateKey(), ALGA);
 			
-				
-				certificado.setLlaveSimetrica(llaveDescifrada);
-
-				byte[] cifrarLlave = Cifrado.cifrar(certificadoServidor.getPublicKey(), llaveDescifrada, ALGA);
-				String llaveCifrada = toByteArrayHexa(cifrarLlave);
-				outputLine = llaveCifrada;
-				pEscritor.println(outputLine);
-				
-				System.out.println( "Cliente: " + outputLine);
-				
-				
-				byte[] cifrarLlaveCli = Cifrado.cifrar(certificado.getOwnPublicKey(), llaveDescifrada, ALGA);
-				String llaveCifradaClii = toByteArrayHexa(cifrarLlaveCli);
-				
-				outputLine = llaveCifradaClii;
-				pEscritor.println(outputLine);
-				
-				System.out.println("Servidor: " + outputLine);
-				
-				estado++;
-				
-				break;
-			case 4:
+			case 3:
 				System.out.println("Cliente: " + inputLine);
 				if(inputLine.equalsIgnoreCase(OK))
 				{
@@ -188,7 +176,6 @@ public class Cliente {
 					
 					estado++;
 					
-					byte[] respDatos = Cifrado.cifrar(certificadoServidor.g, outputLine, ALGHMAC);
 				}
 				else
 				{
@@ -239,4 +226,18 @@ public class Cliente {
 
 		return out;
 	}
+	
+
+	/**
+	 * Generates a symmetric key according to the specified algorithm
+	 * @param algorithm
+	 * @return the key
+	 * @throws NoSuchAlgorithmException
+	 */
+	private static SecretKey createSymmetricKey(String algorithm) throws NoSuchAlgorithmException{
+		KeyGenerator gen = KeyGenerator.getInstance(algorithm);
+		return gen.generateKey();
+	}
+	
+
 }
